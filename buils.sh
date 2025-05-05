@@ -63,6 +63,7 @@ create_directory_structure() {
 }
 
 # Herunterladen von Ressourcen von GitHub
+# Herunterladen von Ressourcen von GitHub
 download_github_resources() {
     log "Lade Ressourcen von GitHub herunter..."
     
@@ -73,53 +74,28 @@ download_github_resources() {
     # Clone das Repository
     git clone --depth 1 $GITHUB_REPO .
     
-    if [ $? -ne 0 ]; then
-        # Alternativer Ansatz mit direkten Downloads, falls Git nicht funktioniert
-        warn "Git clone fehlgeschlagen, versuche direkten Download der Dateien..."
-        mkdir -p gruby
-        
-        # Herunterladen der GRUB-Theme Dateien
-        wget -P gruby/ $GITHUB_RAW/gruby/background.png
-        wget -P gruby/ $GITHUB_RAW/gruby/install.sh
-        wget -P gruby/ $GITHUB_RAW/gruby/item_c.png
-        wget -P gruby/ $GITHUB_RAW/gruby/selected_item_c.png
-        wget -P gruby/ $GITHUB_RAW/gruby/terminal_box_c.png
-        wget -P gruby/ $GITHUB_RAW/gruby/theme.txt
-        wget -P gruby/ $GITHUB_RAW/gruby/unifont-regular-16.pf2
-        
-        # Weitere Dateien herunterladen
-        wget $GITHUB_RAW/scorp-1.png
-        wget $GITHUB_RAW/scorp-index.png
-    fi
-    
-    # Prüfen wir, welches Verzeichnis existiert
     if [ -d "gruby" ]; then
         log "GRUB-Theme-Verzeichnis 'gruby' gefunden..."
         
         # Kopiere die Dateien in die entsprechenden Verzeichnisse
         log "Kopiere GRUB-Theme Dateien..."
+        mkdir -p ../redscorpion-os/common/grub-theme/
         cp -r gruby/* ../redscorpion-os/common/grub-theme/
     else
-        warn "Weder 'grub' noch 'gruby' Verzeichnis gefunden. Versuche zu bestimmen, was verfügbar ist..."
-        ls -la
-        warn "Versuche mit find den richtigen Ordner zu finden..."
-        find . -name "*grub*" -type d
+        warn "Das 'gruby' Verzeichnis wurde nicht gefunden."
+        find . -type d -name "*grub*"
     fi
     
     # Prüfe die vorhandenen Bild-Dateien
     if [ -f "scorp-1.png" ]; then
         log "Kopiere Hintergrund- und Icon-Dateien..."
+        mkdir -p ../redscorpion-os/common/artwork/
         cp scorp-1.png ../redscorpion-os/common/artwork/scorp-background.png
-    else
-        warn "scorp-1.png nicht gefunden. Suche nach Alternativen..."
-        find . -name "*.png" | grep -i "scorp\|background"
     fi
     
     if [ -f "scorp-index.png" ]; then
+        mkdir -p ../redscorpion-os/common/artwork/
         cp scorp-index.png ../redscorpion-os/common/artwork/scorp-icon.png
-    else
-        warn "scorp-index.png nicht gefunden. Suche nach Alternativen..."
-        find . -name "*.png" | grep -i "icon\|logo"
     fi
     
     # Zurück zum Hauptverzeichnis
@@ -129,6 +105,47 @@ download_github_resources() {
     rm -rf ./temp_github
     
     log "Ressourcen erfolgreich heruntergeladen."
+}
+
+# Funktion zum Kopieren der Assets in beide Editionen
+copy_assets() {
+    log "Kopiere Assets in beide Editionen..."
+    
+    # Stelle sicher, dass die Zielverzeichnisse existieren
+    mkdir -p ./redscorpion-os/home/config/includes.chroot/boot/grub/themes/redscorpion/
+    mkdir -p ./redscorpion-os/security/config/includes.chroot/boot/grub/themes/redscorpion/
+    
+    # Kopiere GRUB-Theme in beide Editionen, aber prüfe zuerst ob Dateien existieren
+    if [ -d "./redscorpion-os/common/grub-theme/" ] && [ "$(ls -A ./redscorpion-os/common/grub-theme/)" ]; then
+        cp -r ./redscorpion-os/common/grub-theme/* ./redscorpion-os/home/config/includes.chroot/boot/grub/themes/redscorpion/
+        cp -r ./redscorpion-os/common/grub-theme/* ./redscorpion-os/security/config/includes.chroot/boot/grub/themes/redscorpion/
+    else
+        warn "Verzeichnis ./redscorpion-os/common/grub-theme/ ist leer oder existiert nicht."
+    fi
+    
+    # Kopiere Hintergrundbilder in beide Editionen
+    mkdir -p ./redscorpion-os/home/config/includes.chroot/usr/share/backgrounds/redscorpion/
+    mkdir -p ./redscorpion-os/security/config/includes.chroot/usr/share/backgrounds/redscorpion/
+    
+    if [ -f "./redscorpion-os/common/artwork/scorp-background.png" ]; then
+        cp ./redscorpion-os/common/artwork/scorp-background.png ./redscorpion-os/home/config/includes.chroot/usr/share/backgrounds/redscorpion/
+        cp ./redscorpion-os/common/artwork/scorp-background.png ./redscorpion-os/security/config/includes.chroot/usr/share/backgrounds/redscorpion/
+    else
+        warn "Hintergrundbild nicht gefunden."
+    fi
+    
+    # Kopiere Icons in beide Editionen
+    mkdir -p ./redscorpion-os/home/config/includes.chroot/usr/share/icons/redscorpion/
+    mkdir -p ./redscorpion-os/security/config/includes.chroot/usr/share/icons/redscorpion/
+    
+    if [ -f "./redscorpion-os/common/artwork/scorp-icon.png" ]; then
+        cp ./redscorpion-os/common/artwork/scorp-icon.png ./redscorpion-os/home/config/includes.chroot/usr/share/icons/redscorpion/
+        cp ./redscorpion-os/common/artwork/scorp-icon.png ./redscorpion-os/security/config/includes.chroot/usr/share/icons/redscorpion/
+    else
+        warn "Icon nicht gefunden."
+    fi
+    
+    log "Assets kopiert."
 }
 
 # Konfiguriere live-build für Home Edition
